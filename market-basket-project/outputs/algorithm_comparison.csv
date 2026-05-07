@@ -1,0 +1,7 @@
+algorithm,min_support,min_confidence,min_lift,runtime_seconds,frequent_itemsets,rules,avg_lift,avg_confidence
+apriori,0.01,0.5,1.2,0.1337,69,0,0,0
+apriori,0.02,0.5,1.2,0.0418,38,0,0,0
+apriori,0.05,0.5,1.2,0.0081,11,0,0,0
+fpgrowth,0.01,0.5,1.2,0.2199,69,0,0,0
+fpgrowth,0.02,0.5,1.2,0.0852,38,0,0,0
+fpgrowth,0.05,0.5,1.2,0.0704,11,0,0,0

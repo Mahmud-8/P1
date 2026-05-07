@@ -1,0 +1,5 @@
+cluster,transactions,avg_basket_size,top_items
+0,8637,2.37,"yogurt, root vegetables, tropical fruit, bottled water, sausage"
+1,3382,2.71,"whole milk, other vegetables, yogurt, tropical fruit, sausage"
+2,1508,2.83,"rolls/buns, whole milk, other vegetables, yogurt, tropical fruit"
+3,1436,2.88,"soda, whole milk, other vegetables, rolls/buns, yogurt"
