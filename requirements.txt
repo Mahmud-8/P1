@@ -1,0 +1,11 @@
+pandas
+numpy<2.3
+mlxtend<0.24
+matplotlib
+seaborn
+streamlit
+plotly
+networkx
+wordcloud
+scikit-learn
+tabulate
