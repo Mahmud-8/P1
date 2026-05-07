@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import sys
+from math import cos, pi, sin
 from pathlib import Path
 
-import networkx as nx
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -75,8 +75,10 @@ def filter_rules(
 
 
 def build_network_figure(rules: pd.DataFrame, max_edges: int = 75) -> go.Figure:
-    graph = nx.Graph()
     network_rules = rules.sort_values(["lift", "confidence"], ascending=False).head(max_edges)
+    edges = []
+    nodes: set[str] = set()
+    degrees: dict[str, int] = {}
 
     for _, row in network_rules.iterrows():
         antecedents = parse_itemset(row["antecedents"])
@@ -84,15 +86,13 @@ def build_network_figure(rules: pd.DataFrame, max_edges: int = 75) -> go.Figure:
         for antecedent in antecedents:
             for consequent in consequents:
                 if antecedent != consequent:
-                    graph.add_edge(
-                        antecedent,
-                        consequent,
-                        weight=float(row["lift"]),
-                        confidence=float(row["confidence"]),
-                    )
+                    edges.append((antecedent, consequent, float(row["lift"])))
+                    nodes.update([antecedent, consequent])
+                    degrees[antecedent] = degrees.get(antecedent, 0) + 1
+                    degrees[consequent] = degrees.get(consequent, 0) + 1
 
     figure = go.Figure()
-    if graph.number_of_edges() == 0:
+    if not edges:
         figure.update_layout(
             height=620,
             xaxis=dict(visible=False),
@@ -108,16 +108,23 @@ def build_network_figure(rules: pd.DataFrame, max_edges: int = 75) -> go.Figure:
         )
         return figure
 
-    positions = nx.spring_layout(graph, seed=42, weight="weight", k=0.75)
-    edge_x, edge_y, edge_text = [], [], []
-    for source, target, data in graph.edges(data=True):
+    ordered_nodes = sorted(nodes, key=lambda node: (-degrees.get(node, 0), node))
+    positions = {
+        node: (
+            cos(2 * pi * index / len(ordered_nodes)),
+            sin(2 * pi * index / len(ordered_nodes)),
+        )
+        for index, node in enumerate(ordered_nodes)
+    }
+
+    edge_x, edge_y = [], []
+    for source, target, _weight in edges:
         edge_x.extend([positions[source][0], positions[target][0], None])
         edge_y.extend([positions[source][1], positions[target][1], None])
-        edge_text.append(f"{source} -> {target}: lift {data['weight']:.2f}")
 
-    node_x = [positions[node][0] for node in graph.nodes()]
-    node_y = [positions[node][1] for node in graph.nodes()]
-    node_degree = [graph.degree(node) for node in graph.nodes()]
+    node_x = [positions[node][0] for node in ordered_nodes]
+    node_y = [positions[node][1] for node in ordered_nodes]
+    node_degree = [degrees.get(node, 0) for node in ordered_nodes]
 
     figure.add_trace(
         go.Scatter(
@@ -133,7 +140,7 @@ def build_network_figure(rules: pd.DataFrame, max_edges: int = 75) -> go.Figure:
             x=node_x,
             y=node_y,
             mode="markers+text",
-            text=list(graph.nodes()),
+            text=ordered_nodes,
             textposition="top center",
             hovertemplate="%{text}<extra></extra>",
             marker=dict(
