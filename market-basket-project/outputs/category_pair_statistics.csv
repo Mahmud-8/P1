@@ -1,0 +1,36 @@
+category_pair,cross_category,pairs,total_co_occurrences,avg_lift,max_lift,avg_jaccard,max_chi_squared
+meat and seafood + other,True,20,347,0.909,1.283,0.016,5.106
+bakery + meat and seafood,True,20,509,0.885,1.203,0.0175,21.156
+beverages + snacks and sweets,True,5,86,0.884,0.98,0.0144,2.849
+household + other,True,8,131,0.867,1.12,0.0151,2.979
+dairy + meat and seafood,True,35,977,0.867,1.447,0.0174,6.682
+beverages + other,True,20,516,0.866,1.232,0.0187,9.439
+bakery + snacks and sweets,True,4,73,0.862,1.082,0.0138,3.117
+produce + snacks and sweets,True,7,122,0.859,1.155,0.014,6.173
+bakery + other,True,16,408,0.849,1.126,0.0176,6.608
+bakery + household,True,8,191,0.833,1.519,0.0162,8.515
+bakery + beverages,True,20,754,0.829,1.366,0.021,11.743
+other + snacks and sweets,True,4,42,0.823,0.967,0.0119,2.548
+dairy + other,True,28,733,0.815,1.237,0.0166,6.618
+beverages + meat and seafood,True,25,622,0.804,1.258,0.0171,11.589
+dairy + household,True,14,338,0.796,1.153,0.0153,6.152
+dairy + produce,True,49,2015,0.787,1.311,0.0201,20.749
+bakery + produce,True,28,1106,0.786,1.0,0.0205,19.838
+beverages + produce,True,35,1379,0.776,1.106,0.0212,9.22
+household + snacks and sweets,True,2,19,0.771,0.774,0.0106,0.923
+other + produce,True,28,728,0.769,1.116,0.0171,9.738
+beverages + household,True,10,232,0.768,1.051,0.016,4.569
+household + meat and seafood,True,10,145,0.765,1.14,0.013,5.074
+bakery + dairy,True,28,1033,0.753,1.075,0.0181,13.321
+meat and seafood + produce,True,35,856,0.753,1.336,0.016,21.052
+beverages + dairy,True,35,1326,0.752,1.047,0.0191,17.632
+household + produce,True,14,349,0.747,1.194,0.0159,9.075
+meat and seafood + snacks and sweets,True,5,50,0.742,1.085,0.0106,5.321
+dairy + snacks and sweets,True,7,109,0.738,1.046,0.0115,3.01
+other,False,6,109,0.913,1.319,0.0169,2.074
+bakery,False,6,198,0.85,1.11,0.0191,9.512
+household,False,1,13,0.825,0.825,0.0126,0.516
+produce,False,21,838,0.788,1.098,0.0211,22.291
+dairy,False,21,722,0.776,1.262,0.0172,14.13
+beverages,False,10,340,0.743,0.924,0.0196,11.127
+meat and seafood,False,10,114,0.594,0.907,0.0102,11.203

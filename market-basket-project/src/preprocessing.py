@@ -7,6 +7,8 @@ import pandas as pd
 
 
 REQUIRED_COLUMNS = {"Member_number", "Date", "itemDescription"}
+QUANTITY_COLUMNS = ("Quantity", "quantity")
+CANCELLATION_COLUMNS = ("InvoiceNo", "Invoice", "InvoiceNumber")
 
 
 def clean_groceries_data(df: pd.DataFrame) -> pd.DataFrame:
@@ -17,6 +19,20 @@ def clean_groceries_data(df: pd.DataFrame) -> pd.DataFrame:
 
     cleaned = df.copy()
     cleaned = cleaned.dropna(subset=list(REQUIRED_COLUMNS))
+
+    invoice_column = next((column for column in CANCELLATION_COLUMNS if column in cleaned.columns), None)
+    if invoice_column:
+        cancelled = cleaned[invoice_column].astype(str).str.upper().str.startswith("C")
+        cleaned = cleaned.loc[~cancelled].copy()
+
+    quantity_column = next((column for column in QUANTITY_COLUMNS if column in cleaned.columns), None)
+    if quantity_column:
+        cleaned[quantity_column] = pd.to_numeric(cleaned[quantity_column], errors="coerce")
+        cleaned = cleaned.loc[cleaned[quantity_column] > 0].copy()
+        cleaned["Quantity"] = cleaned[quantity_column]
+    else:
+        cleaned["Quantity"] = 1
+
     cleaned["Member_number"] = cleaned["Member_number"].astype(str).str.strip()
     cleaned["Date"] = pd.to_datetime(cleaned["Date"], dayfirst=True, errors="coerce")
     cleaned["itemDescription"] = (

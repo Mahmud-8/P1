@@ -1,0 +1,10 @@
+antecedent_category,rules,unique_antecedents,avg_lift,max_lift,avg_confidence,top_consequents
+dairy,14,7,1.557,2.183,0.12,sausage; sausage; yogurt
+meat and seafood,5,1,1.466,1.912,0.161,yogurt; whole milk; whole milk
+snacks and sweets,4,3,1.39,1.654,0.089,citrus fruit; yogurt; citrus fruit
+pantry,3,3,1.411,1.617,0.105,tropical fruit; bottled water; soda
+beverages,4,4,1.411,1.537,0.077,sausage; sausage; brown bread
+household,2,2,1.481,1.519,0.101,pastry; yogurt
+bakery,4,3,1.355,1.366,0.105,canned beer; canned beer; sausage
+produce,5,5,1.241,1.288,0.09,rolls/buns; yogurt; sausage
+other,3,3,1.264,1.286,0.101,rolls/buns; sausage; tropical fruit

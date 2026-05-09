@@ -28,6 +28,104 @@ from src.preprocessing import (
 DATA_PATH = ROOT / "data" / "groceries.csv"
 OUTPUT_DIR = ROOT / "outputs"
 FIGURES_DIR = OUTPUT_DIR / "figures"
+MIN_ITEM_FREQUENCY = 10
+MIN_LIFT = 1.2
+ACTIONABLE_CONFIDENCE = 0.5
+DASHBOARD_CONFIDENCE = 0.05
+DASHBOARD_SUPPORT = 0.001
+
+
+CATEGORY_KEYWORDS = {
+    "produce": (
+        "fruit",
+        "vegetables",
+        "berries",
+        "grapes",
+        "onions",
+        "potato",
+        "salad",
+        "herbs",
+    ),
+    "dairy": (
+        "milk",
+        "yogurt",
+        "cheese",
+        "curd",
+        "butter",
+        "cream",
+        "dessert",
+    ),
+    "bakery": (
+        "bread",
+        "rolls",
+        "buns",
+        "pastry",
+        "cake",
+    ),
+    "meat and seafood": (
+        "sausage",
+        "beef",
+        "pork",
+        "ham",
+        "chicken",
+        "meat",
+        "fish",
+        "turkey",
+    ),
+    "beverages": (
+        "water",
+        "soda",
+        "beer",
+        "wine",
+        "coffee",
+        "tea",
+        "beverages",
+        "juice",
+        "liquor",
+        "whisky",
+    ),
+    "pantry": (
+        "flour",
+        "sugar",
+        "rice",
+        "pasta",
+        "oil",
+        "sauce",
+        "spices",
+        "salt",
+        "vinegar",
+        "canned",
+        "soups",
+    ),
+    "snacks and sweets": (
+        "chocolate",
+        "candy",
+        "gum",
+        "snack",
+        "waffles",
+        "honey",
+        "jam",
+    ),
+    "household": (
+        "detergent",
+        "cleaner",
+        "napkins",
+        "toilet",
+        "bags",
+        "kitchen",
+        "hygiene",
+        "cosmetics",
+        "spray",
+    ),
+}
+
+
+def infer_category(item: str) -> str:
+    item_text = str(item).lower()
+    for category, keywords in CATEGORY_KEYWORDS.items():
+        if any(keyword in item_text for keyword in keywords):
+            return category
+    return "other"
 
 
 def pairwise_statistics(basket_df: pd.DataFrame, top_n: int = 35) -> pd.DataFrame:
@@ -48,6 +146,9 @@ def pairwise_statistics(basket_df: pd.DataFrame, top_n: int = 35) -> pd.DataFram
         support_right = right_values.mean()
         support_pair = both / transaction_count
         expected = support_left * support_right
+        category_left = infer_category(left)
+        category_right = infer_category(right)
+        category_pair = " + ".join(sorted({category_left, category_right}))
         denominator = (both + left_only) * (right_only + neither) * (both + right_only) * (left_only + neither)
         chi_squared = (
             transaction_count * ((both * neither) - (left_only * right_only)) ** 2 / denominator
@@ -58,6 +159,10 @@ def pairwise_statistics(basket_df: pd.DataFrame, top_n: int = 35) -> pd.DataFram
             {
                 "item_a": left,
                 "item_b": right,
+                "category_a": category_left,
+                "category_b": category_right,
+                "category_pair": category_pair,
+                "cross_category": category_left != category_right,
                 "co_occurrences": both,
                 "support_a": support_left,
                 "support_b": support_right,
@@ -71,6 +176,64 @@ def pairwise_statistics(basket_df: pd.DataFrame, top_n: int = 35) -> pd.DataFram
         )
 
     return pd.DataFrame(rows).sort_values(["lift", "co_occurrences"], ascending=False)
+
+
+def category_pair_statistics(pair_stats: pd.DataFrame) -> pd.DataFrame:
+    if pair_stats.empty:
+        return pd.DataFrame()
+
+    summary = (
+        pair_stats.groupby(["category_pair", "cross_category"], as_index=False)
+        .agg(
+            pairs=("category_pair", "size"),
+            total_co_occurrences=("co_occurrences", "sum"),
+            avg_lift=("lift", "mean"),
+            max_lift=("lift", "max"),
+            avg_jaccard=("jaccard", "mean"),
+            max_chi_squared=("chi_squared", "max"),
+        )
+        .sort_values(["cross_category", "avg_lift", "total_co_occurrences"], ascending=[False, False, False])
+    )
+    summary["avg_lift"] = summary["avg_lift"].round(3)
+    summary["avg_jaccard"] = summary["avg_jaccard"].round(4)
+    summary["max_lift"] = summary["max_lift"].round(3)
+    summary["max_chi_squared"] = summary["max_chi_squared"].round(3)
+    return summary.reset_index(drop=True)
+
+
+def antecedent_category_summary(rules: pd.DataFrame) -> pd.DataFrame:
+    if rules.empty:
+        return pd.DataFrame()
+
+    rows = []
+    for _, row in rules.iterrows():
+        for antecedent in row["antecedents"]:
+            rows.append(
+                {
+                    "antecedent_category": infer_category(antecedent),
+                    "antecedent_item": antecedent,
+                    "consequents": ", ".join(sorted(row["consequents"])),
+                    "lift": float(row["lift"]),
+                    "confidence": float(row["confidence"]),
+                    "support": float(row["support"]),
+                }
+            )
+
+    summary = pd.DataFrame(rows)
+    return (
+        summary.groupby("antecedent_category", as_index=False)
+        .agg(
+            rules=("antecedent_item", "size"),
+            unique_antecedents=("antecedent_item", "nunique"),
+            avg_lift=("lift", "mean"),
+            max_lift=("lift", "max"),
+            avg_confidence=("confidence", "mean"),
+            top_consequents=("consequents", lambda values: "; ".join(values.head(3))),
+        )
+        .sort_values(["max_lift", "avg_lift"], ascending=False)
+        .round({"avg_lift": 3, "max_lift": 3, "avg_confidence": 3})
+        .reset_index(drop=True)
+    )
 
 
 def basket_clusters(basket_df: pd.DataFrame, top_n: int = 30, clusters: int = 4) -> pd.DataFrame:
@@ -126,6 +289,14 @@ def save_eda_figures(cleaned_df: pd.DataFrame, basket_df: pd.DataFrame) -> None:
     plt.title("Top Item Co-occurrence Heatmap")
     plt.tight_layout()
     plt.savefig(FIGURES_DIR / "co_occurrence_heatmap.png", dpi=160)
+    plt.close()
+
+    monthly_transaction_counts(cleaned_df).plot(figsize=(10, 5), marker="o", color="#8e44ad")
+    plt.title("Monthly Transaction Trend")
+    plt.xlabel("Month")
+    plt.ylabel("Transactions")
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "monthly_transaction_trend.png", dpi=160)
     plt.close()
 
     text = " ".join(cleaned_df["itemDescription"])
@@ -188,13 +359,18 @@ def write_reports(
     cleaned_df: pd.DataFrame,
     basket_df: pd.DataFrame,
     pair_stats: pd.DataFrame,
+    category_pairs: pd.DataFrame,
     comparison: pd.DataFrame,
     rules: pd.DataFrame,
+    strict_rules: pd.DataFrame,
+    antecedent_summary: pd.DataFrame,
     clusters: pd.DataFrame,
 ) -> None:
     sizes = transaction_size_summary(basket_df)
     monthly = monthly_transaction_counts(cleaned_df)
     top_items = item_frequency(basket_df).head(10)
+    raw_product_count = cleaned_df["itemDescription"].nunique()
+    removed_products = raw_product_count - basket_df.shape[1]
 
     (OUTPUT_DIR / "eda_report.md").write_text(
         "\n".join(
@@ -203,7 +379,8 @@ def write_reports(
                 "",
                 f"- Raw rows after cleaning: {len(cleaned_df):,}",
                 f"- Transactions: {len(basket_df):,}",
-                f"- Unique products: {basket_df.shape[1]:,}",
+                f"- Unique products after rare-item filtering: {basket_df.shape[1]:,}",
+                f"- Rare products removed with min frequency {MIN_ITEM_FREQUENCY}: {removed_products:,}",
                 f"- Average basket size: {sizes['mean']:.2f}",
                 f"- Median basket size: {sizes['50%']:.2f}",
                 f"- Date range: {cleaned_df['Date'].min().date()} to {cleaned_df['Date'].max().date()}",
@@ -213,7 +390,11 @@ def write_reports(
                 "",
                 top_items.to_frame("transactions").to_markdown(),
                 "",
-                "Figures are saved in `outputs/figures/`.",
+                "## Seasonal Trend",
+                "",
+                f"Monthly transaction counts range from {int(monthly.min()):,} to {int(monthly.max()):,}; the busiest month is {monthly.idxmax().strftime('%Y-%m')}.",
+                "",
+                "Figures are saved in `outputs/figures/`, including item frequency, basket size, co-occurrence heatmap, word cloud, and monthly transaction trend.",
             ]
         ),
         encoding="utf-8",
@@ -227,6 +408,10 @@ def write_reports(
                 "The table below ranks top product pairs by lift, with chi-squared and Jaccard similarity included for statistical context.",
                 "",
                 pair_stats.head(15).to_markdown(index=False),
+                "",
+                "## Cross-category Opportunities",
+                "",
+                category_pairs.head(10).to_markdown(index=False),
                 "",
                 "## Basket Segments",
                 "",
@@ -245,7 +430,13 @@ def write_reports(
                 "",
                 comparison.to_markdown(index=False),
                 "",
-                "The dashboard rule database uses a lower exploratory support threshold so the sparse groceries data still yields useful recommendations.",
+                f"Strict actionable rule count at support >= {DASHBOARD_SUPPORT}, confidence >= {ACTIONABLE_CONFIDENCE}, and lift >= {MIN_LIFT}: {len(strict_rules):,}.",
+                "",
+                "The Groceries transactions are sparse, so the deployed dashboard also includes an exploratory rule database with confidence >= 0.05 and lift >= 1.2. The strict result is saved separately as `outputs/rules_actionable.csv` for auditability.",
+                "",
+                "## Rules by Antecedent Category",
+                "",
+                antecedent_summary.to_markdown(index=False) if not antecedent_summary.empty else "No exploratory rules were available for grouping.",
                 "",
                 "## Top Rules",
                 "",
@@ -262,13 +453,15 @@ def main() -> None:
 
     raw_df = pd.read_csv(DATA_PATH)
     cleaned_df = clean_groceries_data(raw_df)
-    basket_df = create_basket_matrix(cleaned_df)
+    basket_df = create_basket_matrix(cleaned_df, min_item_frequency=MIN_ITEM_FREQUENCY)
 
     basket_df.astype(int).to_csv(OUTPUT_DIR / "transaction_matrix.csv")
     co_occurrence_matrix(basket_df, top_n=35).to_csv(OUTPUT_DIR / "co_occurrence_matrix.csv")
 
     pair_stats = pairwise_statistics(basket_df)
     pair_stats.to_csv(OUTPUT_DIR / "pairwise_statistics.csv", index=False)
+    category_pairs = category_pair_statistics(pair_stats)
+    category_pairs.to_csv(OUTPUT_DIR / "category_pair_statistics.csv", index=False)
 
     clusters = basket_clusters(basket_df)
     clusters.to_csv(OUTPUT_DIR / "cluster_summary.csv", index=False)
@@ -279,27 +472,52 @@ def main() -> None:
     frequent_itemsets, rules = mine_rules(
         basket_df,
         algorithm="fpgrowth",
-        min_support=0.001,
-        min_confidence=0.05,
-        min_lift=1.2,
+        min_support=DASHBOARD_SUPPORT,
+        min_confidence=DASHBOARD_CONFIDENCE,
+        min_lift=MIN_LIFT,
     )
     rules = prune_redundant_rules(rules)
+    antecedent_summary = antecedent_category_summary(rules)
+    antecedent_summary.to_csv(OUTPUT_DIR / "antecedent_rule_summary.csv", index=False)
     serialize_itemsets(frequent_itemsets).to_csv(OUTPUT_DIR / "frequent_itemsets_fpgrowth.csv", index=False)
     serialize_itemsets(rules).to_csv(OUTPUT_DIR / "rules.csv", index=False)
+
+    strict_itemsets, strict_rules = mine_rules(
+        basket_df,
+        algorithm="fpgrowth",
+        min_support=DASHBOARD_SUPPORT,
+        min_confidence=ACTIONABLE_CONFIDENCE,
+        min_lift=MIN_LIFT,
+    )
+    serialize_itemsets(strict_itemsets).to_csv(OUTPUT_DIR / "frequent_itemsets_actionable.csv", index=False)
+    serialize_itemsets(prune_redundant_rules(strict_rules)).to_csv(
+        OUTPUT_DIR / "rules_actionable.csv",
+        index=False,
+    )
 
     apriori_itemsets, apriori_rules = mine_rules(
         basket_df,
         algorithm="apriori",
-        min_support=0.001,
-        min_confidence=0.05,
-        min_lift=1.2,
+        min_support=DASHBOARD_SUPPORT,
+        min_confidence=DASHBOARD_CONFIDENCE,
+        min_lift=MIN_LIFT,
     )
     serialize_itemsets(apriori_itemsets).to_csv(OUTPUT_DIR / "frequent_itemsets_apriori.csv", index=False)
     serialize_itemsets(prune_redundant_rules(apriori_rules)).to_csv(OUTPUT_DIR / "rules_apriori.csv", index=False)
 
     save_eda_figures(cleaned_df, basket_df)
     save_network_html(serialize_itemsets(rules))
-    write_reports(cleaned_df, basket_df, pair_stats, comparison, serialize_itemsets(rules), clusters)
+    write_reports(
+        cleaned_df,
+        basket_df,
+        pair_stats,
+        category_pairs,
+        comparison,
+        serialize_itemsets(rules),
+        serialize_itemsets(prune_redundant_rules(strict_rules)),
+        antecedent_summary,
+        clusters,
+    )
 
     print(f"Generated outputs in {OUTPUT_DIR}")
     print(f"Transactions: {len(basket_df):,}; Products: {basket_df.shape[1]:,}; Rules: {len(rules):,}")

@@ -72,16 +72,28 @@ def recommend_items(
         if not antecedents or not consequents:
             continue
 
-        full_match = cart.issubset(antecedents)
+        full_match = antecedents.issubset(cart)
         partial_match = bool(cart.intersection(antecedents))
         if not (full_match or partial_match):
             continue
 
-        score = lift * confidence
+        score = lift
+        match_rank = 0 if full_match else 1
         match_type = "full antecedent match" if full_match else "partial antecedent match"
         matched_rule = f"{', '.join(sorted(antecedents))} -> {', '.join(sorted(consequents))}"
         for item in consequents.difference(cart):
-            if score > candidates[item]["score"]:
+            current_rank = candidates[item].get("match_rank", 99)
+            is_better_match = match_rank < current_rank
+            is_stronger_rule = match_rank == current_rank and (
+                lift,
+                confidence,
+                support,
+            ) > (
+                candidates[item]["lift"],
+                candidates[item]["confidence"],
+                candidates[item]["support"],
+            )
+            if is_better_match or is_stronger_rule:
                 candidates[item].update(
                     {
                         "score": score,
@@ -90,6 +102,7 @@ def recommend_items(
                         "support": support,
                         "matched_rule": matched_rule,
                         "match_type": match_type,
+                        "match_rank": match_rank,
                     }
                 )
 
@@ -99,10 +112,11 @@ def recommend_items(
     recommendations = pd.DataFrame(
         [{"item": item, **metrics} for item, metrics in candidates.items()]
     )
-    return recommendations.sort_values(
-        ["match_type", "score", "lift", "confidence"],
+    recommendations = recommendations.sort_values(
+        ["match_rank", "lift", "confidence", "support"],
         ascending=[True, False, False, False],
-    ).head(top_n).reset_index(drop=True)
+    ).head(top_n)
+    return recommendations[columns].reset_index(drop=True)
 
 
 def recommend(items, rules):

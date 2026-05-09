@@ -4,14 +4,30 @@ Apriori and FP-Growth were compared at minimum support thresholds 0.01, 0.02, an
 
 | algorithm   |   min_support |   min_confidence |   min_lift |   runtime_seconds |   frequent_itemsets |   rules |   avg_lift |   avg_confidence |
 |:------------|--------------:|-----------------:|-----------:|------------------:|--------------------:|--------:|-----------:|-----------------:|
-| apriori     |          0.01 |              0.5 |        1.2 |            0.1337 |                  69 |       0 |          0 |                0 |
-| apriori     |          0.02 |              0.5 |        1.2 |            0.0418 |                  38 |       0 |          0 |                0 |
-| apriori     |          0.05 |              0.5 |        1.2 |            0.0081 |                  11 |       0 |          0 |                0 |
-| fpgrowth    |          0.01 |              0.5 |        1.2 |            0.2199 |                  69 |       0 |          0 |                0 |
-| fpgrowth    |          0.02 |              0.5 |        1.2 |            0.0852 |                  38 |       0 |          0 |                0 |
-| fpgrowth    |          0.05 |              0.5 |        1.2 |            0.0704 |                  11 |       0 |          0 |                0 |
+| apriori     |          0.01 |              0.5 |        1.2 |            0.1233 |                  69 |       0 |          0 |                0 |
+| apriori     |          0.02 |              0.5 |        1.2 |            0.0445 |                  38 |       0 |          0 |                0 |
+| apriori     |          0.05 |              0.5 |        1.2 |            0.0085 |                  11 |       0 |          0 |                0 |
+| fpgrowth    |          0.01 |              0.5 |        1.2 |            0.2152 |                  69 |       0 |          0 |                0 |
+| fpgrowth    |          0.02 |              0.5 |        1.2 |            0.0783 |                  38 |       0 |          0 |                0 |
+| fpgrowth    |          0.05 |              0.5 |        1.2 |            0.0669 |                  11 |       0 |          0 |                0 |
 
-The dashboard rule database uses a lower exploratory support threshold so the sparse groceries data still yields useful recommendations.
+Strict actionable rule count at support >= 0.001, confidence >= 0.5, and lift >= 1.2: 0.
+
+The Groceries transactions are sparse, so the deployed dashboard also includes an exploratory rule database with confidence >= 0.05 and lift >= 1.2. The strict result is saved separately as `outputs/rules_actionable.csv` for auditability.
+
+## Rules by Antecedent Category
+
+| antecedent_category   |   rules |   unique_antecedents |   avg_lift |   max_lift |   avg_confidence | top_consequents                     |
+|:----------------------|--------:|---------------------:|-----------:|-----------:|-----------------:|:------------------------------------|
+| dairy                 |      14 |                    7 |      1.557 |      2.183 |            0.12  | sausage; sausage; yogurt            |
+| meat and seafood      |       5 |                    1 |      1.466 |      1.912 |            0.161 | yogurt; whole milk; whole milk      |
+| snacks and sweets     |       4 |                    3 |      1.39  |      1.654 |            0.089 | citrus fruit; yogurt; citrus fruit  |
+| pantry                |       3 |                    3 |      1.411 |      1.617 |            0.105 | tropical fruit; bottled water; soda |
+| beverages             |       4 |                    4 |      1.411 |      1.537 |            0.077 | sausage; sausage; brown bread       |
+| household             |       2 |                    2 |      1.481 |      1.519 |            0.101 | pastry; yogurt                      |
+| bakery                |       4 |                    3 |      1.355 |      1.366 |            0.105 | canned beer; canned beer; sausage   |
+| produce               |       5 |                    5 |      1.241 |      1.288 |            0.09  | rolls/buns; yogurt; sausage         |
+| other                 |       3 |                    3 |      1.264 |      1.286 |            0.101 | rolls/buns; sausage; tropical fruit |
 
 ## Top Rules
 

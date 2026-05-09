@@ -15,8 +15,15 @@ from src.recommend import format_itemset, parse_itemset, recommend_items
 
 
 RULES_PATH = ROOT / "outputs" / "rules.csv"
+ACTIONABLE_RULES_PATH = ROOT / "outputs" / "rules_actionable.csv"
 COMPARISON_PATH = ROOT / "outputs" / "algorithm_comparison.csv"
 PAIRWISE_PATH = ROOT / "outputs" / "pairwise_statistics.csv"
+CATEGORY_PAIR_PATH = ROOT / "outputs" / "category_pair_statistics.csv"
+ANTECEDENT_SUMMARY_PATH = ROOT / "outputs" / "antecedent_rule_summary.csv"
+
+ACTIONABLE_CONFIDENCE = 0.50
+DEFAULT_CONFIDENCE = 0.05
+DEFAULT_LIFT = 1.20
 
 
 st.set_page_config(page_title="Market Basket Analysis", layout="wide")
@@ -179,8 +186,23 @@ default_support = min(0.001, max_support)
 with st.sidebar:
     st.header("Filters")
     min_support = st.slider("Minimum Support", 0.0, max_support, default_support, 0.001, format="%.3f")
-    min_confidence = st.slider("Minimum Confidence", 0.0, 1.0, 0.05, 0.01, format="%.2f")
-    min_lift = st.slider("Minimum Lift", 0.0, max(3.0, float(rules["lift"].max())), 1.2, 0.1, format="%.1f")
+    min_confidence = st.slider(
+        "Minimum Confidence",
+        0.0,
+        1.0,
+        DEFAULT_CONFIDENCE,
+        0.01,
+        format="%.2f",
+    )
+    min_lift = st.slider(
+        "Minimum Lift",
+        0.0,
+        max(3.0, float(rules["lift"].max())),
+        DEFAULT_LIFT,
+        0.1,
+        format="%.1f",
+    )
+    st.caption(f"Actionable project threshold: confidence >= {ACTIONABLE_CONFIDENCE:.2f}.")
     search = st.text_input("Search Product")
     sort_by = st.selectbox("Sort Rules By", ["lift", "confidence", "support"])
 
@@ -214,13 +236,16 @@ with tab_rules:
             "consequents_display": "consequents",
         }
     )
-    st.dataframe(table, use_container_width=True, hide_index=True)
-    st.download_button(
-        "Download filtered rules",
-        data=table.to_csv(index=False).encode("utf-8"),
-        file_name="filtered_rules.csv",
-        mime="text/csv",
-    )
+    if table.empty:
+        st.info("No rules match the selected thresholds.")
+    else:
+        st.dataframe(table, use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download filtered rules",
+            data=table.to_csv(index=False).encode("utf-8"),
+            file_name="filtered_rules.csv",
+            mime="text/csv",
+        )
 
 with tab_recommend:
     products = available_products(rules)
@@ -255,16 +280,43 @@ with tab_network:
 with tab_analysis:
     comparison = load_optional_csv(COMPARISON_PATH)
     pairwise = load_optional_csv(PAIRWISE_PATH)
+    category_pairs = load_optional_csv(CATEGORY_PAIR_PATH)
+    antecedent_summary = load_optional_csv(ANTECEDENT_SUMMARY_PATH)
+    actionable_rules = load_optional_csv(ACTIONABLE_RULES_PATH)
 
     if not comparison.empty:
         st.subheader("Apriori vs FP-Growth")
         st.dataframe(comparison, use_container_width=True, hide_index=True)
 
+    if not actionable_rules.empty:
+        st.subheader("Strict Actionable Rules")
+        st.dataframe(actionable_rules, use_container_width=True, hide_index=True)
+    else:
+        st.subheader("Strict Actionable Rules")
+        st.info("No rules met confidence >= 0.50 and lift >= 1.20 for this sparse dataset.")
+
+    if not antecedent_summary.empty:
+        st.subheader("Rules by Antecedent Category")
+        st.dataframe(antecedent_summary, use_container_width=True, hide_index=True)
+
+    if not category_pairs.empty:
+        st.subheader("Top Category Pair Opportunities")
+        st.dataframe(category_pairs.head(20), use_container_width=True, hide_index=True)
+
     if not pairwise.empty:
         st.subheader("Top Pairwise Statistics")
         st.dataframe(
             pairwise.head(20)[
-                ["item_a", "item_b", "co_occurrences", "lift", "jaccard", "chi_squared"]
+                [
+                    "item_a",
+                    "item_b",
+                    "category_a",
+                    "category_b",
+                    "co_occurrences",
+                    "lift",
+                    "jaccard",
+                    "chi_squared",
+                ]
             ],
             use_container_width=True,
             hide_index=True,
