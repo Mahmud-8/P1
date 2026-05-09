@@ -4,7 +4,7 @@ mlxtend<0.24
 matplotlib
 seaborn
 streamlit
-plotly
+plotly>=5.20
 networkx
 wordcloud
 scikit-learn

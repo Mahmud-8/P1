@@ -5,8 +5,12 @@ from math import cos, pi, sin
 from pathlib import Path
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
+
+try:
+    import plotly.graph_objects as go
+except ModuleNotFoundError:
+    go = None
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -82,6 +86,9 @@ def filter_rules(
 
 
 def build_network_figure(rules: pd.DataFrame, max_edges: int = 75) -> go.Figure:
+    if go is None:
+        raise RuntimeError("Plotly is not installed. Add plotly to requirements.txt and redeploy the app.")
+
     network_rules = rules.sort_values(["lift", "confidence"], ascending=False).head(max_edges)
     edges = []
     nodes: set[str] = set()
@@ -275,7 +282,10 @@ with tab_recommend:
 
 with tab_network:
     max_edges = st.slider("Network Edges", 10, 150, 75, 5)
-    st.plotly_chart(build_network_figure(filtered_rules, max_edges=max_edges), use_container_width=True)
+    if go is None:
+        st.error("Plotly is not installed. Add `plotly` to `requirements.txt` and redeploy the app.")
+    else:
+        st.plotly_chart(build_network_figure(filtered_rules, max_edges=max_edges), use_container_width=True)
 
 with tab_analysis:
     comparison = load_optional_csv(COMPARISON_PATH)
