@@ -41,7 +41,7 @@ python scripts/run_analysis.py
 streamlit run app/app.py
 ```
 
-For Streamlit Cloud, use `market-basket-project/app/app.py` as the main file path. The repository-root `requirements.txt` is intentionally minimal for deployment and installs only the packages needed by the dashboard.
+For Streamlit Cloud, use `market-basket-project/app/app.py` as the main file path. The dashboard deployment dependencies are also listed in `market-basket-project/app/requirements.txt`, which Streamlit Cloud reads first for this entrypoint.
 
 ## Generated Deliverables
 
