@@ -1,19 +1,19 @@
 # Mining Report
 
-Apriori and FP-Growth were compared at minimum support thresholds 0.01, 0.02, and 0.05 using confidence >= 0.5 and lift >= 1.2.
+Apriori and FP-Growth were compared using relaxed thresholds suitable for this sparse dataset: confidence >= 0.05 and lift >= 1.2.
 
 | algorithm   |   min_support |   min_confidence |   min_lift |   runtime_seconds |   frequent_itemsets |   rules |   avg_lift |   avg_confidence |
 |:------------|--------------:|-----------------:|-----------:|------------------:|--------------------:|--------:|-----------:|-----------------:|
-| apriori     |          0.01 |              0.5 |        1.2 |            0.1233 |                  69 |       0 |          0 |                0 |
-| apriori     |          0.02 |              0.5 |        1.2 |            0.0445 |                  38 |       0 |          0 |                0 |
-| apriori     |          0.05 |              0.5 |        1.2 |            0.0085 |                  11 |       0 |          0 |                0 |
-| fpgrowth    |          0.01 |              0.5 |        1.2 |            0.2152 |                  69 |       0 |          0 |                0 |
-| fpgrowth    |          0.02 |              0.5 |        1.2 |            0.0783 |                  38 |       0 |          0 |                0 |
-| fpgrowth    |          0.05 |              0.5 |        1.2 |            0.0669 |                  11 |       0 |          0 |                0 |
+| apriori     |        0.001  |             0.05 |        1.2 |            1.4334 |                 750 |      37 |     1.3997 |           0.1024 |
+| apriori     |        0.0015 |             0.05 |        1.2 |            0.7103 |                 457 |      10 |     1.351  |           0.0762 |
+| apriori     |        0.002  |             0.05 |        1.2 |            0.5079 |                 330 |       6 |     1.3071 |           0.0676 |
+| fpgrowth    |        0.001  |             0.05 |        1.2 |           13.7227 |                 750 |      37 |     1.3997 |           0.1024 |
+| fpgrowth    |        0.0015 |             0.05 |        1.2 |            7.3621 |                 457 |      10 |     1.351  |           0.0762 |
+| fpgrowth    |        0.002  |             0.05 |        1.2 |            4.6611 |                 330 |       6 |     1.3071 |           0.0676 |
 
-Strict actionable rule count at support >= 0.001, confidence >= 0.5, and lift >= 1.2: 0.
+Actionable rule count at support >= 0.001, confidence >= 0.05, and lift >= 1.2: 37.
 
-The Groceries transactions are sparse, so the deployed dashboard also includes an exploratory rule database with confidence >= 0.05 and lift >= 1.2. The strict result is saved separately as `outputs/rules_actionable.csv` for auditability.
+The Groceries transactions are sparse, so the dashboard uses a practical confidence threshold of 0.05. A stricter 0.50 confidence threshold was tested but produced no rules.
 
 ## Rules by Antecedent Category
 

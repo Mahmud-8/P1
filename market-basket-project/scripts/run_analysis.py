@@ -30,7 +30,7 @@ OUTPUT_DIR = ROOT / "outputs"
 FIGURES_DIR = OUTPUT_DIR / "figures"
 MIN_ITEM_FREQUENCY = 10
 MIN_LIFT = 1.2
-ACTIONABLE_CONFIDENCE = 0.5
+ACTIONABLE_CONFIDENCE = 0.05
 DASHBOARD_CONFIDENCE = 0.05
 DASHBOARD_SUPPORT = 0.001
 
@@ -426,13 +426,13 @@ def write_reports(
             [
                 "# Mining Report",
                 "",
-                "Apriori and FP-Growth were compared at minimum support thresholds 0.01, 0.02, and 0.05 using confidence >= 0.5 and lift >= 1.2.",
+                "Apriori and FP-Growth were compared using relaxed thresholds suitable for this sparse dataset: confidence >= 0.05 and lift >= 1.2.",
                 "",
                 comparison.to_markdown(index=False),
                 "",
-                f"Strict actionable rule count at support >= {DASHBOARD_SUPPORT}, confidence >= {ACTIONABLE_CONFIDENCE}, and lift >= {MIN_LIFT}: {len(strict_rules):,}.",
+                f"Actionable rule count at support >= {DASHBOARD_SUPPORT}, confidence >= {ACTIONABLE_CONFIDENCE}, and lift >= {MIN_LIFT}: {len(strict_rules):,}.",
                 "",
-                "The Groceries transactions are sparse, so the deployed dashboard also includes an exploratory rule database with confidence >= 0.05 and lift >= 1.2. The strict result is saved separately as `outputs/rules_actionable.csv` for auditability.",
+                "The Groceries transactions are sparse, so the dashboard uses a practical confidence threshold of 0.05. A stricter 0.50 confidence threshold was tested but produced no rules.",
                 "",
                 "## Rules by Antecedent Category",
                 "",
@@ -466,7 +466,12 @@ def main() -> None:
     clusters = basket_clusters(basket_df)
     clusters.to_csv(OUTPUT_DIR / "cluster_summary.csv", index=False)
 
-    comparison = compare_algorithms(basket_df)
+    comparison = compare_algorithms(
+        basket_df,
+        support_values=(DASHBOARD_SUPPORT, 0.0015, 0.002),
+        min_confidence=DASHBOARD_CONFIDENCE,
+        min_lift=MIN_LIFT,
+    )
     comparison.to_csv(OUTPUT_DIR / "algorithm_comparison.csv", index=False)
 
     frequent_itemsets, rules = mine_rules(

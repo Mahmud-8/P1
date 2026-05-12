@@ -1,3 +1,11 @@
 streamlit==1.57.0
 pandas>=2.0
 plotly>=5.20
+networkx
+numpy<2.3
+mlxtend<0.24
+matplotlib
+seaborn
+wordcloud
+scikit-learn
+tabulate

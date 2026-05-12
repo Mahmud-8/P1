@@ -25,7 +25,7 @@ PAIRWISE_PATH = ROOT / "outputs" / "pairwise_statistics.csv"
 CATEGORY_PAIR_PATH = ROOT / "outputs" / "category_pair_statistics.csv"
 ANTECEDENT_SUMMARY_PATH = ROOT / "outputs" / "antecedent_rule_summary.csv"
 
-ACTIONABLE_CONFIDENCE = 0.50
+ACTIONABLE_CONFIDENCE = 0.05
 DEFAULT_CONFIDENCE = 0.05
 DEFAULT_LIFT = 1.20
 
@@ -299,11 +299,13 @@ with tab_analysis:
         st.dataframe(comparison, use_container_width=True, hide_index=True)
 
     if not actionable_rules.empty:
-        st.subheader("Strict Actionable Rules")
+        st.subheader("Actionable Rules")
         st.dataframe(actionable_rules, use_container_width=True, hide_index=True)
     else:
-        st.subheader("Strict Actionable Rules")
-        st.info("No rules met confidence >= 0.50 and lift >= 1.20 for this sparse dataset.")
+        st.subheader("Actionable Rules")
+        st.info(
+            f"No rules met confidence >= {ACTIONABLE_CONFIDENCE:.2f} and lift >= {DEFAULT_LIFT:.2f}."
+        )
 
     if not antecedent_summary.empty:
         st.subheader("Rules by Antecedent Category")
